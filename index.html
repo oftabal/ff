@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f2f2f7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="FF">
+  <title>FF Manager</title>
+  <style>
+    :root{
+      color-scheme:light dark;
+      --bg:#f2f2f7;--card:#fff;--text:#111;--muted:#6e6e73;--line:#d1d1d6;
+      --blue:#0a84ff;--green:#34c759;--orange:#ff9f0a;--red:#ff3b30;--purple:#af52de;
+      --shadow:0 8px 28px rgba(0,0,0,.08)
+    }
+    @media(prefers-color-scheme:dark){
+      :root{--bg:#000;--card:#1c1c1e;--text:#fff;--muted:#98989d;--line:#38383a;--shadow:none}
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
+    button,input{font:inherit}
+    .app{max-width:720px;margin:auto;min-height:100vh;padding:calc(12px + env(safe-area-inset-top)) 14px calc(92px + env(safe-area-inset-bottom))}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    h1{font-size:30px;margin:0;letter-spacing:-.8px}
+    h2,h3{margin-top:0}
+    .sub,.muted,.note{color:var(--muted)}
+    .note{font-size:13px;line-height:1.45}
+    .location{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--card);border-radius:999px;box-shadow:var(--shadow);font-size:13px;font-weight:700;border:0;color:var(--text)}
+    .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--line);padding:2px;border-radius:12px;margin:10px 0 16px}
+    .seg button{border:0;background:transparent;color:var(--text);padding:10px;border-radius:10px;font-weight:800}
+    .seg button.active{background:var(--card);box-shadow:var(--shadow)}
+    .screen{display:none}.screen.active{display:block}
+    .card{background:var(--card);border-radius:20px;padding:18px;margin:12px 0;box-shadow:var(--shadow)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .tile{border:0;background:var(--card);color:var(--text);border-radius:20px;padding:20px 16px;text-align:left;box-shadow:var(--shadow);min-height:125px;position:relative}
+    .tile.recommended{outline:3px solid var(--blue)}
+    .badge{position:absolute;top:10px;right:10px;font-size:11px;font-weight:800;color:var(--blue)}
+    .ico{font-size:32px;display:block;margin-bottom:10px}
+    .tile b{font-size:19px}.tile small{display:block;color:var(--muted);margin-top:5px}
+    .back{border:0;background:transparent;color:var(--blue);font-weight:800;padding:6px 0 10px}
+    .primary,.secondary,.danger{width:100%;border:0;border-radius:15px;padding:15px;font-weight:800;margin-top:10px}
+    .primary{background:var(--blue);color:white}.secondary{background:var(--line);color:var(--text)}.danger{background:var(--red);color:white}
+    label{display:block;font-weight:800;margin:14px 0 7px}
+    input[type=date],input[type=number]{width:100%;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--text)}
+    .choice{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .choice button{border:1px solid var(--line);background:var(--card);color:var(--text);padding:15px;border-radius:14px;font-weight:800}
+    .choice button.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+    .countrow{display:grid;grid-template-columns:62px 1fr 62px;gap:10px;align-items:center}
+    .round{height:58px;border:0;border-radius:17px;background:var(--line);color:var(--text);font-size:28px;font-weight:800}
+    .num{height:58px;text-align:center;font-size:28px;font-weight:900}
+    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .stat{background:var(--bg);border-radius:15px;padding:14px}.stat b{font-size:23px;display:block}
+    .calendar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .calendar-head button{border:0;background:var(--line);color:var(--text);border-radius:12px;width:42px;height:36px;font-weight:900}
+    .week,.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+    .week div{text-align:center;font-size:12px;color:var(--muted);font-weight:800}
+    .day{min-height:66px;background:var(--bg);border-radius:12px;padding:6px;position:relative;overflow:hidden}
+    .day.empty{background:transparent}
+    .day.today{outline:2px solid var(--blue)}
+    .day .n{font-size:12px;font-weight:800}
+    .day .event{font-size:11px;font-weight:800;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .event.ofta{color:var(--blue)}.event.mf{color:var(--green)}.event.lr{color:var(--orange)}
+    .list{display:flex;flex-direction:column;gap:9px}
+    .row{background:var(--bg);border-radius:15px;padding:13px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .row-actions{display:flex;gap:7px}.mini{border:0;background:var(--line);color:var(--text);border-radius:10px;padding:8px 10px;font-weight:800}
+    .money{font-size:28px;font-weight:900}
+    .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));max-width:692px;width:calc(100% - 28px);display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .fab button{border:0;border-radius:16px;padding:14px;font-weight:800;box-shadow:var(--shadow)}
+    .toast{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-30px);opacity:0;background:#111;color:#fff;padding:12px 16px;border-radius:13px;font-weight:700;transition:.25s;z-index:99}
+    .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+    @media(max-width:430px){.grid{grid-template-columns:1fr}.tile{min-height:auto}.day{min-height:58px;padding:5px}.day .event{font-size:10px}}
+  </style>
+</head>
+<body>
+<div id="toast" class="toast">Uloženo</div>
+<div class="app">
+  <header>
+    <div><h1>FF</h1><div id="today" class="sub"></div></div>
+    <button class="location" id="gpsStatus" onclick="detectLocation()">📍 Ruční režim</button>
+  </header>
+
+  <div class="seg">
+    <button id="tabOps" class="active" onclick="setMode('ops')">Provoz</button>
+    <button id="tabBilling" onclick="setMode('billing')">Fakturace</button>
+  </div>
+
+  <main id="opsHome" class="screen active">
+    <div class="grid">
+      <button id="tileOfta" class="tile" onclick="showScreen('ofta')"><span class="badge"></span><span class="ico">👁️</span><b>OFTA</b><small>Katarakty a přehled</small></button>
+      <button id="tileCfk" class="tile" onclick="showScreen('cfk')"><span class="badge"></span><span class="ico">✴️</span><b>Cyklofoto</b><small>MF / LR a přehled</small></button>
+      <button class="tile" onclick="showScreen('advance')"><span class="ico">👓</span><b>Optika</b><small>Záloha čeká / odeslána</small></button>
+      <button class="tile" onclick="showScreen('data')"><span class="ico">💾</span><b>Data</b><small>Export a obnova</small></button>
+    </div>
+    <section class="card">
+      <h3>Tento měsíc</h3>
+      <div id="homeStats" class="stats"></div>
+    </section>
+  </main>
+
+  <main id="billingHome" class="screen">
+    <section class="card"><h2>🧾 Fakturace</h2><p class="muted">Částky jsou viditelné pouze zde.</p></section>
+    <div id="billingCards"></div>
+  </main>
+
+  <main id="ofta" class="screen">
+    <button class="back" onclick="goHome()">‹ Zpět</button>
+    <section class="card">
+      <h2>👁️ OFTA</h2>
+      <label>Datum</label><input id="oftaDate" type="date">
+      <label>Počet katarakt</label><input id="oftaCount" type="number" min="0" step="1" inputmode="numeric" value="0">
+      <button class="primary" onclick="saveOfta()">Uložit</button>
+    </section>
+    <section class="card">
+      <div class="seg"><button id="oftaCalBtn" class="active" onclick="setView('ofta','cal')">Kalendář</button><button id="oftaListBtn" onclick="setView('ofta','list')">Seznam</button></div>
+      <div id="oftaCal"></div><div id="oftaList" style="display:none"></div>
+    </section>
+  </main>
+
+  <main id="cfk" class="screen">
+    <button class="back" onclick="goHome()">‹ Zpět</button>
+    <section class="card">
+      <h2>✴️ Cyklofoto</h2>
+      <label>Operatér</label>
+      <div class="choice"><button id="mfBtn" class="active" onclick="setOperator('MF')">MF</button><button id="lrBtn" onclick="setOperator('LR')">LR</button></div>
+      <label>Počet</label>
+      <div class="countrow"><button class="round" onclick="changeCFK(-1)">−</button><input id="cfkCount" class="num" type="number" min="1" max="3" value="1"><button class="round" onclick="changeCFK(1)">+</button></div>
+      <label>Datum</label><input id="cfkDate" type="date">
+      <button class="primary" onclick="saveCFK()">Uložit</button>
+    </section>
+    <section class="card">
+      <div class="seg"><button id="cfkCalBtn" class="active" onclick="setView('cfk','cal')">Kalendář</button><button id="cfkListBtn" onclick="setView('cfk','list')">Seznam</button></div>
+      <div id="cfkCal"></div><div id="cfkList" style="display:none"></div>
+    </section>
+  </main>
+
+  <main id="advance" class="screen">
+    <button class="back" onclick="goHome()">‹ Zpět</button>
+    <section class="card">
+      <h2>👓 Optika – záloha</h2>
+      <p id="advanceState" class="muted"></p>
+      <label>Datum</label><input id="advanceDate" type="date">
+      <button class="primary" onclick="markAdvance()">Označit jako odeslanou</button>
+      <button class="secondary" onclick="resetAdvance()">Označit jako čekající</button>
+    </section>
+  </main>
+
+  <main id="data" class="screen">
+    <button class="back" onclick="goHome()">‹ Zpět</button>
+    <section class="card">
+      <h2>💾 Data</h2>
+      <p class="note">Data jsou uložená v tomto prohlížeči. Export JSON si ulož do iCloudu nebo aplikace Soubory.</p>
+      <button class="primary" onclick="exportJSON()">Exportovat JSON</button>
+      <button class="secondary" onclick="document.getElementById('importFile').click()">Importovat JSON</button>
+      <input id="importFile" type="file" accept="application/json" hidden onchange="importJSON(event)">
+      <button class="danger" onclick="clearAll()">Smazat všechna data</button>
+    </section>
+  </main>
+</div>
+
+<div class="fab"><button onclick="goHome()">🏠 Domů</button><button onclick="showManual()">✋ Ruční režim</button></div>
+
+<script>
+const KEY='ffmanager_v01';
+const defaults={ofta:[],cfk:[],advance:{sent:false,date:null},settings:{oftaRate:2000,oftaDeduction:5000,mfRate:5000,lrRate:1500}};
+let db=load(),operator='MF',mode='ops',calDate=new Date();
+
+const LOCATIONS={
+  ofta:{name:'OFTA Plzeň',lat:49.7589,lon:13.3569,radius:250,screen:'ofta'},
+  euc:{name:'EUC Praha 10',lat:50.0839,lon:14.5075,radius:250,screen:'cfk'}
+};
+
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function load(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(KEY)||'{}');
+    return { ...clone(defaults), ...saved, settings:{...defaults.settings,...(saved.settings||{})} };
+  }catch(e){return clone(defaults)}
+}
+function persist(){localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function iso(d=new Date()){return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
+function fmtDate(s){return s?new Intl.DateTimeFormat('cs-CZ').format(new Date(s+'T12:00:00')):'—'}
+function money(n){return new Intl.NumberFormat('cs-CZ',{style:'currency',currency:'CZK',maximumFractionDigits:0}).format(n)}
+function toast(t='Uloženo'){const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1500)}
+document.getElementById('today').textContent=new Intl.DateTimeFormat('cs-CZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date());
+['oftaDate','cfkDate','advanceDate'].forEach(id=>document.getElementById(id).value=iso());
+
+function hideAll(){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'))}
+function setMode(m){mode=m;document.getElementById('tabOps').classList.toggle('active',m==='ops');document.getElementById('tabBilling').classList.toggle('active',m==='billing');hideAll();document.getElementById(m==='ops'?'opsHome':'billingHome').classList.add('active');renderAll()}
+function showScreen(id){hideAll();document.getElementById(id).classList.add('active');renderAll()}
+function goHome(){setMode(mode)}
+function showManual(){document.getElementById('gpsStatus').textContent='✋ Ruční režim';clearRecommended();setMode('ops')}
+function setOperator(op){operator=op;document.getElementById('mfBtn').classList.toggle('active',op==='MF');document.getElementById('lrBtn').classList.toggle('active',op==='LR')}
+function changeCFK(d){const i=document.getElementById('cfkCount');i.value=Math.max(1,Math.min(3,Number(i.value||1)+d))}
+
+function saveOfta(){
+ const date=document.getElementById('oftaDate').value,count=Number(document.getElementById('oftaCount').value);
+ if(!date||!Number.isInteger(count)||count<0)return alert('Zadej platné datum a počet.');
+ db.ofta.push({id:crypto.randomUUID(),date,count,billed:false});document.getElementById('oftaCount').value=0;persist();toast()
+}
+function saveCFK(){
+ const date=document.getElementById('cfkDate').value,count=Number(document.getElementById('cfkCount').value);
+ if(!date||!Number.isInteger(count)||count<1||count>3)return alert('Počet musí být 1 až 3.');
+ db.cfk.push({id:crypto.randomUUID(),date,operator,count,billed:false});document.getElementById('cfkCount').value=1;persist();toast()
+}
+function editRecord(type,id){
+ const arr=type==='ofta'?db.ofta:db.cfk,row=arr.find(x=>x.id===id); if(!row)return;
+ const count=Number(prompt('Nový počet:',row.count)); if(!Number.isInteger(count)||count<0)return;
+ row.count=count;persist();toast('Záznam upraven')
+}
+function deleteRecord(type,id){
+ if(!confirm('Smazat tento záznam?'))return;
+ if(type==='ofta')db.ofta=db.ofta.filter(x=>x.id!==id);else db.cfk=db.cfk.filter(x=>x.id!==id);
+ persist();toast('Záznam smazán')
+}
+function markAdvance(){db.advance={sent:true,date:document.getElementById('advanceDate').value||iso()};persist();toast('Záloha odeslána')}
+function resetAdvance(){db.advance={sent:false,date:db.advance.date};persist();toast('Záloha čeká')}
+
+function monthRecords(arr){const y=calDate.getFullYear(),m=calDate.getMonth();return arr.filter(x=>{const d=new Date(x.date+'T12:00:00');return d.getFullYear()===y&&d.getMonth()===m})}
+function calendarHtml(type){
+ const y=calDate.getFullYear(),m=calDate.getMonth(),first=new Date(y,m,1),days=new Date(y,m+1,0).getDate();
+ const offset=(first.getDay()+6)%7;
+ const title=new Intl.DateTimeFormat('cs-CZ',{month:'long',year:'numeric'}).format(first);
+ let cells='';
+ for(let i=0;i<offset;i++)cells+='<div class="day empty"></div>';
+ for(let n=1;n<=days;n++){
+   const date=iso(new Date(y,m,n)),today=date===iso(),events=[];
+   if(type==='ofta'){
+     const sum=db.ofta.filter(x=>x.date===date).reduce((s,x)=>s+x.count,0);if(sum)events.push(`<div class="event ofta">👁️ ${sum}</div>`)
+   }else{
+     const mf=db.cfk.filter(x=>x.date===date&&x.operator==='MF').reduce((s,x)=>s+x.count,0);
+     const lr=db.cfk.filter(x=>x.date===date&&x.operator==='LR').reduce((s,x)=>s+x.count,0);
+     if(mf)events.push(`<div class="event mf">MF ${mf}</div>`);if(lr)events.push(`<div class="event lr">LR ${lr}</div>`)
+   }
+   cells+=`<div class="day ${today?'today':''}"><div class="n">${n}</div>${events.join('')}</div>`;
+ }
+ const arr=monthRecords(type==='ofta'?db.ofta:db.cfk),total=arr.reduce((s,x)=>s+x.count,0);
+ let stats=type==='ofta'?`<div class="stats"><div class="stat"><span>Dní</span><b>${new Set(arr.map(x=>x.date)).size}</b></div><div class="stat"><span>Katarakty</span><b>${total}</b></div></div>`:
+ `<div class="stats"><div class="stat"><span>MF</span><b>${arr.filter(x=>x.operator==='MF').reduce((s,x)=>s+x.count,0)}</b></div><div class="stat"><span>LR</span><b>${arr.filter(x=>x.operator==='LR').reduce((s,x)=>s+x.count,0)}</b></div></div>`;
+ return `<div class="calendar-head"><button onclick="moveMonth(-1)">‹</button><b>${title}</b><button onclick="moveMonth(1)">›</button></div>
+ <div class="week"><div>Po</div><div>Út</div><div>St</div><div>Čt</div><div>Pá</div><div>So</div><div>Ne</div></div><div class="calendar">${cells}</div><div style="height:12px"></div>${stats}`;
+}
+function listHtml(type){
+ const arr=(type==='ofta'?db.ofta:db.cfk).slice().sort((a,b)=>b.date.localeCompare(a.date));
+ if(!arr.length)return '<p class="muted">Zatím žádné záznamy.</p>';
+ return '<div class="list">'+arr.map(x=>`<div class="row"><div><b>${fmtDate(x.date)}</b><div class="muted">${type==='ofta'?'Katarakty':x.operator}: ${x.count}${x.billed?' · vyfakturováno':''}</div></div><div class="row-actions"><button class="mini" onclick="editRecord('${type}','${x.id}')">✏️</button><button class="mini" onclick="deleteRecord('${type}','${x.id}')">🗑️</button></div></div>`).join('')+'</div>'
+}
+function setView(type,view){
+ document.getElementById(type+'Cal').style.display=view==='cal'?'block':'none';
+ document.getElementById(type+'List').style.display=view==='list'?'block':'none';
+ document.getElementById(type+'CalBtn').classList.toggle('active',view==='cal');
+ document.getElementById(type+'ListBtn').classList.toggle('active',view==='list');
+}
+function moveMonth(d){calDate=new Date(calDate.getFullYear(),calDate.getMonth()+d,1);renderAll()}
+
+function renderBilling(){
+ const ofta=db.ofta.filter(x=>!x.billed),mf=db.cfk.filter(x=>!x.billed&&x.operator==='MF'),lr=db.cfk.filter(x=>!x.billed&&x.operator==='LR');
+ const sum=a=>a.reduce((s,x)=>s+x.count,0),on=sum(ofta),mn=sum(mf),ln=sum(lr),ot=Math.max(0,on*db.settings.oftaRate-db.settings.oftaDeduction);
+ document.getElementById('billingCards').innerHTML=[
+  bill('👁️ OFTA',`${on} katarakt`,money(ot),`Sazba ${money(db.settings.oftaRate)}, odpočet ${money(db.settings.oftaDeduction)}`,'ofta'),
+  bill('✴️ Cyklofoto MF',`${mn} výkonů`,money(mn*db.settings.mfRate),`Sazba ${money(db.settings.mfRate)}`,'mf'),
+  bill('✴️ Cyklofoto LR',`${ln} výkonů`,money(ln*db.settings.lrRate),`Sazba ${money(db.settings.lrRate)}`,'lr'),
+  `<section class="card"><h2>👓 Optika</h2><div class="money">${db.advance.sent?'Odeslána':'Čeká'}</div><p class="muted">${db.advance.date?fmtDate(db.advance.date):'Bez data'}</p></section>`
+ ].join('')
+}
+function bill(title,count,total,note,type){return `<section class="card"><h2>${title}</h2><div class="muted">${count}</div><div class="money">${total}</div><p class="note">${note}</p><button class="primary" onclick="markBilled('${type}')">Označit jako vyfakturované</button></section>`}
+function markBilled(type){
+ if(!confirm('Označit aktuální nevyfakturované záznamy jako vyfakturované?'))return;
+ if(type==='ofta')db.ofta.forEach(x=>x.billed=true);
+ if(type==='mf')db.cfk.filter(x=>x.operator==='MF').forEach(x=>x.billed=true);
+ if(type==='lr')db.cfk.filter(x=>x.operator==='LR').forEach(x=>x.billed=true);
+ persist();toast('Označeno jako vyfakturované')
+}
+function renderHome(){
+ const y=new Date().getFullYear(),m=new Date().getMonth();
+ const om=db.ofta.filter(x=>{const d=new Date(x.date+'T12:00:00');return d.getFullYear()===y&&d.getMonth()===m});
+ const cm=db.cfk.filter(x=>{const d=new Date(x.date+'T12:00:00');return d.getFullYear()===y&&d.getMonth()===m});
+ document.getElementById('homeStats').innerHTML=`<div class="stat"><span>👁️ OFTA</span><b>${om.reduce((s,x)=>s+x.count,0)}</b></div><div class="stat"><span>✴️ Cyklofoto</span><b>${cm.reduce((s,x)=>s+x.count,0)}</b></div>`
+}
+function renderAll(){
+ document.getElementById('oftaCal').innerHTML=calendarHtml('ofta');document.getElementById('cfkCal').innerHTML=calendarHtml('cfk');
+ document.getElementById('oftaList').innerHTML=listHtml('ofta');document.getElementById('cfkList').innerHTML=listHtml('cfk');
+ document.getElementById('advanceState').textContent=db.advance.sent?`🟢 Odeslána ${fmtDate(db.advance.date)}`:'🔴 Čeká';
+ renderBilling();renderHome()
+}
+
+function exportJSON(){
+ const blob=new Blob([JSON.stringify({app:'FF Manager',version:'0.2',exportedAt:new Date().toISOString(),data:db},null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`FFManager_backup_${iso()}.json`;a.click();URL.revokeObjectURL(a.href)
+}
+async function importJSON(ev){
+ const f=ev.target.files[0];if(!f)return;
+ try{const p=JSON.parse(await f.text()),d=p.data||p;if(!d.ofta||!d.cfk)throw 0;db={...clone(defaults),...d,settings:{...defaults.settings,...(d.settings||{})}};persist();toast('Data obnovena');goHome()}catch(e){alert('Neplatná záloha FF Manageru.')}
+ ev.target.value=''
+}
+function clearAll(){if(confirm('Opravdu smazat všechna data?')){db=clone(defaults);persist();toast('Data smazána');goHome()}}
+
+function distance(a,b,c,d){const R=6371000,p=x=>x*Math.PI/180,dp=p(c-a),dl=p(d-b),q=Math.sin(dp/2)**2+Math.cos(p(a))*Math.cos(p(c))*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.sqrt(q))}
+function clearRecommended(){['tileOfta','tileCfk'].forEach(id=>{const el=document.getElementById(id);el.classList.remove('recommended');el.querySelector('.badge').textContent=''})}
+function recommend(id){clearRecommended();const el=document.getElementById(id);el.classList.add('recommended');el.querySelector('.badge').textContent='📍 Doporučeno'}
+function detectLocation(){
+ if(!navigator.geolocation)return;
+ document.getElementById('gpsStatus').textContent='📍 Zjišťuji…';
+ navigator.geolocation.getCurrentPosition(pos=>{
+  let nearest=null;Object.values(LOCATIONS).forEach(l=>{const dist=distance(pos.coords.latitude,pos.coords.longitude,l.lat,l.lon);if(!nearest||dist<nearest.dist)nearest={...l,dist}});
+  clearRecommended();
+  if(nearest&&nearest.dist<=nearest.radius){
+    document.getElementById('gpsStatus').textContent='📍 '+nearest.name;
+    recommend(nearest.screen==='ofta'?'tileOfta':'tileCfk')
+  }else document.getElementById('gpsStatus').textContent='📍 Ruční režim'
+ },()=>document.getElementById('gpsStatus').textContent='📍 Ruční režim',{enableHighAccuracy:true,timeout:10000,maximumAge:60000})
+}
+
+renderAll();setTimeout(detectLocation,400);
+</script>
+</body>
+</html>
