@@ -65,6 +65,8 @@
     .list{display:flex;flex-direction:column;gap:9px}
     .row{background:var(--bg);border-radius:15px;padding:13px;display:flex;justify-content:space-between;gap:10px;align-items:center}
     .row-actions{display:flex;gap:7px}.mini{border:0;background:var(--line);color:var(--text);border-radius:10px;padding:8px 10px;font-weight:800}
+    .record{background:var(--bg);border-radius:15px}.record .row{background:transparent}
+    .edit-panel{padding:0 13px 13px}.edit-panel label{margin:4px 0 7px}.edit-actions{display:flex;gap:10px}.edit-actions button{flex:1}
     .money{font-size:28px;font-weight:900}
     .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));max-width:692px;width:calc(100% - 28px);display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .fab button{border:0;border-radius:16px;padding:14px;font-weight:800;box-shadow:var(--shadow)}
@@ -114,6 +116,7 @@
     </section>
     <section class="card">
       <div class="seg"><button id="oftaCalBtn" class="active" onclick="setView('ofta','cal')">Kalendář</button><button id="oftaListBtn" onclick="setView('ofta','list')">Seznam</button></div>
+      <p class="note">Chybný počet opravíš v Seznamu tlačítkem Upravit.</p>
       <div id="oftaCal"></div><div id="oftaList" style="display:none"></div>
     </section>
   </main>
@@ -131,6 +134,7 @@
     </section>
     <section class="card">
       <div class="seg"><button id="cfkCalBtn" class="active" onclick="setView('cfk','cal')">Kalendář</button><button id="cfkListBtn" onclick="setView('cfk','list')">Seznam</button></div>
+      <p class="note">Chybný počet opravíš v Seznamu tlačítkem Upravit.</p>
       <div id="cfkCal"></div><div id="cfkList" style="display:none"></div>
     </section>
   </main>
@@ -164,7 +168,7 @@
 <script>
 const KEY='ffmanager_v01';
 const defaults={ofta:[],cfk:[],advance:{sent:false,date:null},settings:{oftaRate:2000,oftaDeduction:5000,mfRate:5000,lrRate:1500}};
-let db=load(),operator='MF',mode='ops',calDate=new Date();
+let db=load(),operator='MF',mode='ops',calDate=new Date(),editingRecord=null;
 
 const LOCATIONS={
   ofta:{name:'OFTA Plzeň',lat:49.7589,lon:13.3569,radius:250,screen:'ofta'},
@@ -205,10 +209,21 @@ function saveCFK(){
  db.cfk.push({id:crypto.randomUUID(),date,operator,count,billed:false});document.getElementById('cfkCount').value=1;persist();toast()
 }
 function editRecord(type,id){
- const arr=type==='ofta'?db.ofta:db.cfk,row=arr.find(x=>x.id===id); if(!row)return;
- const count=Number(prompt('Nový počet:',row.count)); if(!Number.isInteger(count)||count<0)return;
- row.count=count;persist();toast('Záznam upraven')
+ const arr=type==='ofta'?db.ofta:db.cfk;
+ if(!arr.some(x=>x.id===id))return;
+ editingRecord={type,id};setView(type,'list');renderAll();
+ const input=document.getElementById('editCount');input.focus();input.select()
 }
+function saveEditedRecord(type,id){
+ const arr=type==='ofta'?db.ofta:db.cfk,row=arr.find(x=>x.id===id),input=document.getElementById('editCount');
+ if(!row||!input)return;
+ const raw=input.value.trim(),count=Number(raw);
+ if(raw===''||!Number.isInteger(count)||(type==='ofta'?count<0:count<1||count>3)){
+  alert(type==='ofta'?'Zadej nezáporný celý počet.':'Počet musí být 1 až 3.');return
+ }
+ row.count=count;editingRecord=null;persist();toast('Počet opraven')
+}
+function cancelEdit(){editingRecord=null;renderAll()}
 function deleteRecord(type,id){
  if(!confirm('Smazat tento záznam?'))return;
  if(type==='ofta')db.ofta=db.ofta.filter(x=>x.id!==id);else db.cfk=db.cfk.filter(x=>x.id!==id);
@@ -244,7 +259,7 @@ function calendarHtml(type){
 function listHtml(type){
  const arr=(type==='ofta'?db.ofta:db.cfk).slice().sort((a,b)=>b.date.localeCompare(a.date));
  if(!arr.length)return '<p class="muted">Zatím žádné záznamy.</p>';
- return '<div class="list">'+arr.map(x=>`<div class="row"><div><b>${fmtDate(x.date)}</b><div class="muted">${type==='ofta'?'Katarakty':x.operator}: ${x.count}${x.billed?' · vyfakturováno':''}</div></div><div class="row-actions"><button class="mini" onclick="editRecord('${type}','${x.id}')">✏️</button><button class="mini" onclick="deleteRecord('${type}','${x.id}')">🗑️</button></div></div>`).join('')+'</div>'
+ return '<div class="list">'+arr.map(x=>`<div class="record"><div class="row"><div><b>${fmtDate(x.date)}</b><div class="muted">${type==='ofta'?'Katarakty':x.operator}: ${x.count}${x.billed?' · vyfakturováno':''}</div></div><div class="row-actions"><button class="mini" onclick="editRecord('${type}','${x.id}')" aria-label="Upravit počet">Upravit</button><button class="mini" onclick="deleteRecord('${type}','${x.id}')" aria-label="Smazat záznam">🗑️</button></div></div>${editingRecord?.type===type&&editingRecord.id===x.id?`<div class="edit-panel"><label for="editCount">Opravit počet</label><input id="editCount" type="number" inputmode="numeric" min="${type==='ofta'?0:1}" ${type==='cfk'?'max="3"':''} step="1" value="${x.count}"><div class="edit-actions"><button class="primary" onclick="saveEditedRecord('${type}','${x.id}')">Uložit opravu</button><button class="secondary" onclick="cancelEdit()">Zrušit</button></div></div>`:''}</div>`).join('')+'</div>'
 }
 function setView(type,view){
  document.getElementById(type+'Cal').style.display=view==='cal'?'block':'none';
